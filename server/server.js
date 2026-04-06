@@ -9,7 +9,9 @@ const app=express();
 
 //security middleware
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(cors(
     {
         origin: [process.env.FRONTEND_URL || "", "http://localhost:5173"],
