@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import  OpenAI  from 'openai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const app=express();
 
@@ -12,7 +12,7 @@ const app=express();
 app.use(helmet());
 app.use(cors(
     {
-        origin: process.env.FRONTEND_URL || "",
+        origin: [process.env.FRONTEND_URL || "", "http://localhost:5173"],
         credentials:true,
     }
 ))
@@ -26,13 +26,8 @@ const limiter=rateLimit({
 app.use(limiter)
 app.use(express.json({limit:"10mb"}))
 
-const API_KEY=process.env.NEBIUS_API_KEY
-const client = new OpenAI({
-    baseURL: 'https://api.studio.nebius.com/v1/',
-    apiKey: API_KEY,
-});
-
-
+const API_KEY = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(API_KEY);
 
 app.post("/api/explain-code",async(req,res)=>{
     try {
@@ -41,20 +36,18 @@ app.post("/api/explain-code",async(req,res)=>{
             return res.status(400).json({error:"Code is required"})
         }
 
-        const messages=[
-            {
-                role:"user",
-                content:`Explain this ${language} code briefly and simply: ${code}and also tell the ${code} is in which language at top language `
-
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const prompt = `Explain this ${language} code briefly and simply:\n\n${code}\n\nAnd also state at the very top which programming language this is.`;
+        
+        const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 4096,
             }
-        ]
-        const response=await client.chat.completions.create({
-           model: "openai/gpt-oss-120b",
-           messages,
-           temperature:0.3,
-           max_token:600,
-        })
-        const explaination=response?.choices[0]?.message?.content;
+        });
+        
+        const explaination = result.response.text();
         if(!explaination){
             return res.status(500).json({error:"Failed to explain code"})
         }

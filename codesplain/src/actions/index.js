@@ -8,7 +8,8 @@ export async function explain(prevState, formData) {
     // Log URL to confirm it's correct
     // console.log("Requesting:", `${import.meta.env.VITE_API_BASE_URL}/api/explain-code`);
 
-    const res = await fetch(`https://codesplain-zxzr.onrender.com/api/explain-code`, {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+    const res = await fetch(`${API_BASE_URL}/api/explain-code`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, language }),
